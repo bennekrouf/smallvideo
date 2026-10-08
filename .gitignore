@@ -1,0 +1,4 @@
+/target
+/dist
+# Generated from icon.png for Windows builds (see crates/app/build.rs)
+/crates/app/assets/icon.ico

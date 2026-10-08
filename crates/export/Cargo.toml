@@ -1,0 +1,16 @@
+[package]
+name = "small-video-export"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+small-video-core.workspace = true
+small-video-render.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+tiny-skia = "0.12"
+# Installing ffmpeg on first use (download, verify, unzip), as in Splitter.
+ureq = "3.4.2"
+sha2 = "0.11.0"
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }

@@ -1,0 +1,30 @@
+[package]
+name = "small-video"
+version.workspace = true
+edition.workspace = true
+description = "Record your screen, get a polished video"
+
+[dependencies]
+small-video-core.workspace = true
+small-video-capture.workspace = true
+small-video-render.workspace = true
+small-video-export.workspace = true
+anyhow.workspace = true
+dioxus.workspace = true
+tokio.workspace = true
+dirs.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Decodes the embedded icons (window and menu bar); png is the only format needed.
+image = { version = "0.25", default-features = false, features = ["png"] }
+# Deleting a take moves its folder to the system Trash, so it can be restored (as in Splitter).
+trash = "5.2"
+# Names each take's folder after the local time it started.
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+# Leaving the app's own window out of screen recordings (SetWindowDisplayAffinity).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"

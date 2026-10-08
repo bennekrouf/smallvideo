@@ -1,0 +1,43 @@
+# Changelog
+
+What changed in each release of **Small Video**, the screen recorder that turns
+a take into a polished video: smooth cursor, zoom on clicks, background and
+rounded corners.
+
+The public version of this page — with the download for each release — lives at
+<https://mayorana.ch/en/apps/small-video/releases>. It is generated from this
+file by `scripts/changelog_to_json.py`, so this file is the only place a release
+note is written.
+
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Each heading is dated on the day its tag was pushed. Releases that carried only
+build or packaging work say so rather than being hidden: the version numbers a
+user sees in the update prompt should all be accounted for.
+
+## [Unreleased]
+
+### Added
+
+- Record your screen from the menu bar (macOS) or the notification area
+  (Windows), or with ⌘⇧2 / Ctrl+Shift+2 from any app. The display your pointer
+  is on is recorded with your microphone, and Small Video's own windows are
+  left out.
+- The cursor is redrawn instead of recorded, so it glides smoothly and can be
+  made bigger. Clicks become zooms that ease in on where you clicked.
+- An editor to fine-tune the result: pick a zoom on the timeline to change when
+  it starts and ends, how deep it goes and where it looks, or delete it; add
+  one at the playhead with Z; and choose the frame (screen, 16:9, 9:16 or
+  square), background, padding, corners, shadow, cursor size and smoothing.
+  Every change can be undone and is saved as you go.
+- Export to MP4 at 1080p, 1440p or 4K, 30 or 60 fps, with your voice. What you
+  export is exactly what the preview shows.
+- Recordings take little space: on macOS each take is shrunk to about a fifth
+  of its size right after you stop, with no visible loss on text.
+- The tool that exports videos is downloaded and checked on first use, so there
+  is nothing to install by hand.
+- Remove a recording you don't need from the list with the 🗑 that appears when
+  you point at it. After you confirm (Enter, or Esc to cancel) it goes to the
+  system Trash, so you can still get it back; a video you exported from it is
+  kept.

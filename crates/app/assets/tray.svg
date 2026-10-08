@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Menu bar icon: the app icon's mark alone, black on transparent. macOS uses it as a
+  template image (tinted for light and dark menu bars), so only its alpha matters.
+  Same geometry as icon.svg with the squircle cropped away; the gap around the cursor
+  is cut out of the frame. Rendered to tray.png at 44 px (22 pt at 2×).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="168 224 600 580">
+  <defs>
+    <mask id="cut">
+      <rect x="0" y="0" width="1024" height="1024" fill="white"/>
+      <polygon points="520,440 520,713 591.5,645.4 639.6,759.8 683.8,740.3 635.7,627.2 728,627.2"
+               fill="black" stroke="black" stroke-width="80" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g mask="url(#cut)">
+    <rect x="208" y="264" width="608" height="400" rx="64" ry="64" fill="none" stroke="#000" stroke-width="64"/>
+    <circle cx="316" cy="372" r="48" fill="#000"/>
+  </g>
+  <polygon points="520,440 520,713 591.5,645.4 639.6,759.8 683.8,740.3 635.7,627.2 728,627.2"
+           fill="#000" stroke="#000" stroke-width="16" stroke-linejoin="round"/>
+</svg>

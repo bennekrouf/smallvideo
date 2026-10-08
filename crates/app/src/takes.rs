@@ -1,0 +1,86 @@
+//! Takes on disk: one folder per recording under ~/Movies/Small Video.
+
+use small_video_capture::Take;
+use small_video_core::{take, EventLog, Project};
+use std::path::PathBuf;
+
+/// `SMALL_VIDEO_LIBRARY` overrides it (for development and tests).
+pub fn library() -> PathBuf {
+    if let Some(dir) = std::env::var_os("SMALL_VIDEO_LIBRARY") {
+        return dir.into();
+    }
+    dirs::video_dir().unwrap_or_else(|| dirs::home_dir().unwrap_or_default().join("Movies")).join("Small Video")
+}
+
+/// A new, empty folder for the next take, named after the time it starts.
+pub fn new_dir() -> std::io::Result<PathBuf> {
+    let dir = library().join(chrono::Local::now().format("%Y-%m-%d %H.%M.%S").to_string());
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// Writes the take's project, with zooms suggested from its clicks.
+pub fn create_project(t: &Take) -> std::io::Result<Project> {
+    let events: EventLog =
+        std::fs::read(t.dir.join(take::EVENTS)).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+    let project = Project::new(t.duration, t.width, t.height, &events);
+    project.save(&t.dir.join(take::PROJECT))?;
+    Ok(project)
+}
+
+#[derive(Clone, PartialEq)]
+pub struct Entry {
+    pub dir: PathBuf,
+    pub name: String,
+    pub project: Option<Project>,
+    /// Size of the recording in bytes.
+    pub size: u64,
+}
+
+/// Every take in the library, newest first.
+pub fn list() -> Vec<Entry> {
+    let Ok(read) = std::fs::read_dir(library()) else {
+        return Vec::new();
+    };
+    let mut entries: Vec<Entry> = read
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.join(take::SCREEN).is_file())
+        .map(|dir| Entry {
+            name: dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
+            project: Project::load(&dir.join(take::PROJECT)).ok(),
+            size: std::fs::metadata(dir.join(take::SCREEN)).map_or(0, |m| m.len()),
+            dir,
+        })
+        .collect();
+    entries.sort_by(|a, b| b.name.cmp(&a.name));
+    entries
+}
+
+/// Moves a take's folder to the system Trash. On macOS through the file manager API rather
+/// than by scripting Finder, which would ask for permission to control Finder (the folder can
+/// still be dragged back out of the Trash, just not "Put Back").
+pub fn move_to_trash(dir: &std::path::Path) -> Result<(), trash::Error> {
+    #[allow(unused_mut)]
+    let mut ctx = trash::TrashContext::default();
+    #[cfg(target_os = "macos")]
+    {
+        use trash::macos::{DeleteMethod, TrashContextExtMacos};
+        ctx.set_delete_method(DeleteMethod::NsFileManager);
+    }
+    ctx.delete(dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Moves a real (empty-ish) folder to the system Trash.
+    #[test]
+    fn a_take_folder_goes_to_the_trash() {
+        let dir = std::env::temp_dir().join(format!("small-video-trash-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(take::SCREEN), b"not really a movie").unwrap();
+        move_to_trash(&dir).unwrap();
+        assert!(!dir.exists());
+    }
+}

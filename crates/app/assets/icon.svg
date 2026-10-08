@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Small Video app icon.
+  Same family as Splitter, GitAgent and the ais-* apps: squircle ground, white glowing
+  mark, one hue per app. Small Video's hue is rose, which no sibling uses, and it echoes
+  the default background of its videos.
+
+  The mark is the app in one picture: a screen being recorded (the record dot in its
+  corner) with the cursor Small Video redraws over it, breaking out of the frame the way
+  it glides on top of the recording. The cursor is the app's own pointer shape
+  (render::compose::CURSOR_POINTS), scaled ×13 with its tip at (520, 440); a ring in the
+  ground colour separates it from the frame. Few, thick shapes so it still reads at 16×16.
+  Designed at 1024.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#F0517E"/>
+      <stop offset="55%"  stop-color="#BE2A5C"/>
+      <stop offset="100%" stop-color="#5E1030"/>
+    </linearGradient>
+    <!-- White with a hint of rose at the far edge -->
+    <linearGradient id="mark" gradientUnits="userSpaceOnUse" x1="200" y1="0" x2="824" y2="0">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFE0EA"/>
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Squircle background -->
+  <rect x="64" y="64" width="896" height="896" rx="224" ry="224" fill="url(#bg)"/>
+
+  <!-- The screen being recorded, and the record dot in its corner -->
+  <g filter="url(#glow)">
+    <rect x="208" y="264" width="608" height="400" rx="64" ry="64"
+          fill="none" stroke="url(#mark)" stroke-width="56"/>
+    <circle cx="316" cy="372" r="44" fill="url(#mark)"/>
+  </g>
+
+  <!-- The cursor, on top: first a ring in the ground colour so it reads apart from the
+       frame where they cross, then the pointer itself -->
+  <polygon points="520,440 520,713 591.5,645.4 639.6,759.8 683.8,740.3 635.7,627.2 728,627.2"
+           fill="#A82352" stroke="#A82352" stroke-width="64" stroke-linejoin="round"/>
+  <polygon filter="url(#glow)"
+           points="520,440 520,713 591.5,645.4 639.6,759.8 683.8,740.3 635.7,627.2 728,627.2"
+           fill="url(#mark)" stroke="url(#mark)" stroke-width="16" stroke-linejoin="round"/>
+</svg>

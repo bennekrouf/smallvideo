@@ -1,0 +1,28 @@
+[package]
+name = "small-video-capture"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+small-video-core.workspace = true
+anyhow.workspace = true
+crossbeam-channel.workspace = true
+serde_json.workspace = true
+
+# SCRecordingOutput (writes the file itself, hardware encoded) and microphone capture need macOS 15.
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = { version = "11", features = ["macos_15_0"] }
+
+
+# Windows.Graphics.Capture and Media Foundation encoding; cpal for the microphone (as in
+# Splitter); Win32 for the pointer and the monitor under it.
+[target.'cfg(windows)'.dependencies]
+windows-capture = "2"
+cpal = "0.15"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }

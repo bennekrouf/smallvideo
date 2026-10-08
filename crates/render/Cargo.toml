@@ -1,0 +1,9 @@
+[package]
+name = "small-video-render"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+small-video-core.workspace = true
+serde.workspace = true
+tiny-skia = "0.12"
