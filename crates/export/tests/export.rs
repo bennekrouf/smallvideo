@@ -105,3 +105,51 @@ fn compacting_shrinks_and_keeps_sound_and_length() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn blanks_are_cut_from_picture_and_sound() {
+    let Some(ffmpeg) = ffmpeg() else {
+        return;
+    };
+    let ffprobe = ffmpeg.with_file_name("ffprobe");
+    let dir = std::env::temp_dir().join(format!("small-video-blanks-test-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    // 9 s: a tone, 3 s of silence (3–6 s), the tone again.
+    let status = Command::new(&ffmpeg)
+        .args(["-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=320x200:rate=30:duration=9"])
+        .args(["-f", "lavfi", "-i", "aevalsrc='if(between(t,3,6),0,0.5*sin(2*PI*440*t))':s=48000:d=9"])
+        .args(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest"])
+        .arg(dir.join(take::SCREEN))
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let loudness = small_video_export::sound::loudness(&ffmpeg, &dir.join(take::SCREEN)).unwrap().unwrap();
+    assert!((loudness.db.len() as f64 * loudness.window - 9.0).abs() < 0.2, "{} windows", loudness.db.len());
+    let params = small_video_core::BlankParams::default();
+    let cuts = small_video_core::blanks::detect(&loudness, 9.0, &params);
+    assert_eq!(cuts.len(), 1, "{cuts:?}");
+    // The 3 s silence less the 0.25 s margins (within a window of the AAC edges).
+    assert!((cuts[0].start - 3.25).abs() < 0.1 && (cuts[0].end - 5.75).abs() < 0.1, "{cuts:?}");
+
+    let mut project = Project::new(9.0, 320, 200, &EventLog::default());
+    project.blanks = Some(params);
+    project.cuts = cuts;
+    project.save(&dir.join(take::PROJECT)).unwrap();
+    let expected = project.timeline().duration();
+
+    let out = dir.join("out.mp4");
+    export(&dir, &out, Settings { long_side: 320, fps: 30 }, &Progress::default(), &AtomicBool::new(false)).unwrap();
+    if ffprobe.is_file() {
+        let durations = probe(&ffprobe, &out, "stream=codec_type,duration");
+        for line in durations.lines() {
+            let secs: f64 = line.rsplit(',').next().unwrap().parse().unwrap();
+            assert!((secs - expected).abs() < 0.1, "{line}: expected {expected:.2} s");
+        }
+        assert_eq!(durations.lines().count(), 2, "{durations}");
+    }
+    // What's left is the tone, with no pause long enough to cut.
+    let after = small_video_export::sound::loudness(&ffmpeg, &out).unwrap().unwrap();
+    assert!(small_video_core::blanks::detect(&after, expected, &params).is_empty(), "a silence is left");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

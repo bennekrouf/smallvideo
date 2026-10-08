@@ -1,5 +1,6 @@
 //! A take's edits and look, saved as `project.json` next to the recording.
 
+use crate::blanks::{BlankParams, Cut, Timeline};
 use crate::events::EventLog;
 use crate::zoom::{auto_zoom, AutoZoom, Zoom};
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,11 @@ pub struct Project {
     pub zooms: Vec<Zoom>,
     #[serde(default)]
     pub style: Style,
+    /// Blank cutting, when turned on: its settings, and the cuts they found (some may be kept).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blanks: Option<BlankParams>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cuts: Vec<Cut>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -83,7 +89,15 @@ impl Project {
             height,
             zooms: auto_zoom(&events.clicks, duration, &AutoZoom::default()),
             style: Style::default(),
+            blanks: None,
+            cuts: Vec::new(),
         }
+    }
+
+    /// The video's timeline: the recording less the blanks cut, if blank cutting is on.
+    pub fn timeline(&self) -> Timeline {
+        let cuts: &[Cut] = if self.blanks.is_some() { &self.cuts } else { &[] };
+        Timeline::new(cuts, self.duration)
     }
 
     pub fn load(path: &Path) -> std::io::Result<Self> {

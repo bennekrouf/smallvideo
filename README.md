@@ -68,6 +68,17 @@ the video plays, so the preview has no layout math of its own and matches the ex
 The video is served to the web view by a small HTTP server on 127.0.0.1 (from Splitter), under
 a random token, with the app's own protocol as a fallback.
 
+### Blanks
+
+**Cut the pauses** in the editor's Blanks panel leaves the silences out of the video. The
+detection is Splitter's (`core/src/blanks.rs`, from `splitter-core`'s `detect.rs`): the sound's
+RMS level per 50 ms window (measured once by ffmpeg, kept as `loudness.json`), runs quieter
+than the threshold (−45 dB) and longer than the minimum pause (1 s) are cut, less 0.25 s on each
+side next to speech. Cuts stay in recording time; zooms and the cursor aren't touched. The
+preview jumps over them; the export drops their frames and trims the sound to match, with a
+10 ms fade at each join. Clicking a cut on the timeline keeps it, and kept cuts survive changing
+the settings.
+
 ### Export
 
 **Export MP4** in the editor writes `<take name>.mp4` next to the take's folder, at 1080p,

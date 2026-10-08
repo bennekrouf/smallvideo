@@ -6,10 +6,11 @@
 //! macOS) with the recording's sound copied over. ffmpeg is downloaded on first use (`tools`).
 
 pub mod compact;
+pub mod sound;
 pub mod tools;
 
 use anyhow::{anyhow, bail, Context, Result};
-use small_video_core::{take, EventLog, Project};
+use small_video_core::{take, EventLog, Project, Timeline};
 use small_video_render::compose::Compositor;
 use small_video_render::Scene;
 use std::io::{ErrorKind, Read, Write};
@@ -124,7 +125,11 @@ fn run(dir: &Path, out: &Path, settings: Settings, progress: &Progress, cancel: 
     let (width, height) = scene.output_size(settings.long_side);
     let compositor = Compositor::new(&scene, width, height);
     let (sw, sh) = source_size(&scene, width, height);
-    let total = (scene.project.duration * fps as f64).ceil() as u64;
+    // Blanks cut: the picture skips them frame by frame, the sound through a filter graph.
+    let timeline = scene.project.timeline();
+    let cutting = timeline.parts.len() != 1 || timeline.duration() < scene.project.duration;
+    let cut_sound = cutting && sound::has_audio(&ffmpeg, &screen)?;
+    let total = (timeline.duration() * fps as f64).ceil() as u64;
     progress.total.store(total.max(1), Ordering::Relaxed);
     progress.done.store(0, Ordering::Relaxed);
 
@@ -144,7 +149,14 @@ fn run(dir: &Path, out: &Path, settings: Settings, progress: &Progress, cancel: 
         .args(["-s", &format!("{width}x{height}"), "-r", &fps.to_string(), "-i", "-"])
         .arg("-i")
         .arg(&screen)
-        .args(["-map", "0:v:0", "-map", "1:a:0?"])
+        .args(if cut_sound {
+            vec!["-filter_complex".to_string(), sound::cut_filter(&timeline), "-map".into(), "0:v:0".into()]
+                .into_iter()
+                .chain(["-map".into(), "[aout]".into()])
+                .collect::<Vec<String>>()
+        } else {
+            ["-map", "0:v:0", "-map", "1:a:0?"].map(String::from).to_vec()
+        })
         .args(["-vf", "scale=out_color_matrix=bt709:out_range=tv", "-pix_fmt", "yuv420p"])
         .args(["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"])
         .args(video_codec(width, height, fps))
@@ -156,7 +168,7 @@ fn run(dir: &Path, out: &Path, settings: Settings, progress: &Progress, cancel: 
         .context("Starting ffmpeg")?;
     let encoder_errors = collect(encoder.stderr.take());
 
-    let pumped = pump(&mut decoder, &mut encoder, &scene, &compositor, (sw, sh), fps, progress, cancel);
+    let pumped = pump(&mut decoder, &mut encoder, &scene, &timeline, &compositor, (sw, sh), fps, progress, cancel);
     if pumped.is_err() {
         let _ = decoder.kill();
         let _ = encoder.kill();
@@ -181,12 +193,13 @@ fn run(dir: &Path, out: &Path, settings: Settings, progress: &Progress, cancel: 
     Ok(())
 }
 
-/// Reads decoded frames, draws each output frame, and hands it to the encoder.
+/// Reads decoded frames, draws each one the timeline shows, and hands it to the encoder.
 #[allow(clippy::too_many_arguments)]
 fn pump(
     decoder: &mut Child,
     encoder: &mut Child,
     scene: &Scene,
+    timeline: &Timeline,
     compositor: &Compositor,
     (sw, sh): (u32, u32),
     fps: u32,
@@ -198,7 +211,8 @@ fn pump(
     let mut source = vec![0u8; sw as usize * sh as usize * 4];
     let (width, height) = compositor.size();
     let mut frame_out = Pixmap::new(width, height).context("frame size")?;
-    let mut i = 0u64;
+    // `j` counts recording frames, `i` the frames written (the cut ones are skipped).
+    let (mut i, mut j) = (0u64, 0u64);
     loop {
         if cancel.load(Ordering::Relaxed) {
             return Err(Cancelled.into());
@@ -208,15 +222,20 @@ fn pump(
             Err(e) if e.kind() == ErrorKind::UnexpectedEof => break,
             Err(e) => return Err(e.into()),
         }
+        let t = j as f64 / fps as f64;
+        j += 1;
+        if !timeline.shows(t) {
+            continue;
+        }
         let src = PixmapRef::from_bytes(&source, sw, sh).context("source frame")?;
-        let frame = scene.frame(i as f64 / fps as f64, width, height);
+        let frame = scene.frame(t, width, height);
         compositor.draw(&frame, src, &mut frame_out);
         output.write_all(frame_out.data()).map_err(|e| anyhow!("Writing to the encoder: {e}"))?;
         i += 1;
         progress.done.store(i, Ordering::Relaxed);
     }
     if i == 0 {
-        bail!("The recording has no frames");
+        bail!("The video has no frames: the recording is empty, or everything in it is cut");
     }
     Ok(())
 }

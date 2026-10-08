@@ -214,3 +214,17 @@ button kbd { margin-left: 6px; }
 .modal p { margin: 0; }
 .delete-name { font-weight: 600; word-break: break-all; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Blanks: cut stretches on the timeline, under the zooms */
+.timeline .cut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, rgba(239, 68, 68, 0.38) 0 5px, rgba(239, 68, 68, 0.12) 5px 10px);
+  border-left: 1px solid rgba(239, 68, 68, 0.7);
+  border-right: 1px solid rgba(239, 68, 68, 0.7);
+  cursor: pointer;
+}
+.timeline .cut.kept { background: none; border: 1px dashed rgba(161, 161, 170, 0.6); }
+.timeline .zoom { z-index: 1; }
+.blanks { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }

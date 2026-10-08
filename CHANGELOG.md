@@ -31,6 +31,11 @@ user sees in the update prompt should all be accounted for.
   one at the playhead with Z; and choose the frame (screen, 16:9, 9:16 or
   square), background, padding, corners, shadow, cursor size and smoothing.
   Every change can be undone and is saved as you go.
+- Cut the pauses: turn it on and the silences where nothing is said are left
+  out of the video, picture and sound together, with a moment kept around
+  your words so nothing is clipped. Two sliders set how quiet a silence is and
+  how long a pause has to be; the cuts show on the timeline, and a click puts
+  one back.
 - Export to MP4 at 1080p, 1440p or 4K, 30 or 60 fps, with your voice. What you
   export is exactly what the preview shows.
 - Recordings take little space: on macOS each take is shrunk to about a fifth
