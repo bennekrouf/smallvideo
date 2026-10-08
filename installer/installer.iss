@@ -8,7 +8,7 @@
 
 #define MyAppName      "Small Video"
 #define MyAppPublisher "Mayorana"
-#define MyAppURL       "https://github.com/bennekrouf/small-video"
+#define MyAppURL       "https://github.com/bennekrouf/smallvideo"
 #define MyAppExeName   "small-video.exe"
 
 [Setup]
@@ -42,6 +42,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19041
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
 CloseApplications=yes
+; Shows the licence (PolyForm Noncommercial) as a page the user accepts before installing.
+LicenseFile=..\LICENSE
 ; Branding — uses assets\icon.ico if present. Comment these out if the file
 ; doesn't exist yet (Inno will fail with a clear error otherwise).
 #if FileExists(AddBackslash(SourcePath) + "..\crates\app\assets\icon.ico")

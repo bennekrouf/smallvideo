@@ -181,4 +181,4 @@ git push origin "$TAG"
 
 echo ""
 echo "🚀  $TAG pushed"
-echo "    https://github.com/bennekrouf/small-video/releases/tag/$TAG"
+echo "    https://github.com/bennekrouf/smallvideo/releases/tag/$TAG"
