@@ -4,6 +4,7 @@
 //! Coordinates are normalized to the captured display: (0, 0) is its top-left corner and
 //! (1, 1) its bottom-right, whatever its resolution. Times are seconds from the take's start.
 
+pub mod blanks;
 pub mod camera;
 pub mod cursor;
 pub mod events;
@@ -11,6 +12,7 @@ pub mod history;
 pub mod project;
 pub mod zoom;
 
+pub use blanks::{BlankParams, Cut, Loudness, Timeline};
 pub use camera::Viewport;
 pub use events::{Button, Click, CursorSample, EventLog};
 pub use project::{Project, Style};
@@ -24,4 +26,6 @@ pub mod take {
     pub const EVENTS: &str = "events.json";
     /// The user's edits (`Project` as JSON).
     pub const PROJECT: &str = "project.json";
+    /// The sound's loudness over time (`Loudness` as JSON), measured once for blank cutting.
+    pub const LOUDNESS: &str = "loudness.json";
 }

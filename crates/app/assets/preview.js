@@ -24,6 +24,7 @@
     video() {
       return document.getElementById("sv-video");
     },
+    /// Length of the recording (the timeline shows all of it, cuts included).
     duration() {
       const t = this.track;
       return t ? (t.frames.length / STRIDE - 1) / t.fps : 0;
@@ -78,7 +79,16 @@
           v.currentTime = Math.max(v.currentTime, 0.001);
         }
         const last = t.frames.length / STRIDE - 1;
-        const time = v.currentTime;
+        let time = v.currentTime;
+        // Jump over the blanks cut while playing; paused, a cut can still be looked at.
+        const skip = (t.skips || []).find(([s, e]) => time >= s && time < e - 0.001);
+        if (skip && !v.paused) {
+          if (skip[1] >= this.duration() - 0.01) {
+            v.pause();
+          } else {
+            v.currentTime = time = skip[1];
+          }
+        }
         const f = Math.max(0, time * t.fps);
         const i = Math.min(Math.floor(f), last);
         const j = Math.min(i + 1, last);
@@ -103,7 +113,9 @@
         const playhead = document.getElementById("sv-playhead");
         if (playhead) playhead.style.left = pct(Math.min(time, this.duration()), this.duration() || 1);
         const label = document.getElementById("sv-time");
-        if (label) label.textContent = clock(time);
+        // Video time, as exported: the recording time less what's cut before it.
+        const cutBefore = (t.skips || []).reduce((sum, [s, e]) => sum + Math.max(0, Math.min(e, time) - s), 0);
+        if (label) label.textContent = clock(time - cutBefore);
 
         const playing = !v.paused;
         if (this.send && (playing !== this.sent.playing || Math.abs(time - this.sent.t) > 0.1)) {
@@ -123,7 +135,7 @@
 
   // Click or drag on the timeline (outside a zoom) to seek.
   document.addEventListener("pointerdown", (e) => {
-    if (!e.target.closest("#sv-timeline") || e.target.closest(".zoom")) return;
+    if (!e.target.closest("#sv-timeline") || e.target.closest(".zoom, .cut")) return;
     sv.scrubbing = true;
     sv.scrub(e);
   });

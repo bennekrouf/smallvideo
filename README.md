@@ -68,6 +68,17 @@ the video plays, so the preview has no layout math of its own and matches the ex
 The video is served to the web view by a small HTTP server on 127.0.0.1 (from Splitter), under
 a random token, with the app's own protocol as a fallback.
 
+### Blanks
+
+**Cut the pauses** in the editor's Blanks panel leaves the silences out of the video. The
+detection is Splitter's (`core/src/blanks.rs`, from `splitter-core`'s `detect.rs`): the sound's
+RMS level per 50 ms window (measured once by ffmpeg, kept as `loudness.json`), runs quieter
+than the threshold (−45 dB) and longer than the minimum pause (1 s) are cut, less 0.25 s on each
+side next to speech. Cuts stay in recording time; zooms and the cursor aren't touched. The
+preview jumps over them; the export drops their frames and trims the sound to match, with a
+10 ms fade at each join. Clicking a cut on the timeline keeps it, and kept cuts survive changing
+the settings.
+
 ### Export
 
 **Export MP4** in the editor writes `<take name>.mp4` next to the take's folder, at 1080p,
@@ -165,3 +176,19 @@ end; they pass without checking anything when ffmpeg isn't installed.
 3. ~~Export: compositor, VideoToolbox encode, 1080p/1440p/4K, 30/60 fps~~; next: faster
    (compose frames in parallel, or on the GPU), GIF, fetch ffmpeg on first use like Splitter
 4. Webcam bubble, system audio toggle, captions, window/area capture, keystroke overlay
+
+## Licence
+
+Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE), like Splitter.
+
+- **Free** for personal use, learning, research and hobby projects, and for
+  charities, schools, universities and government institutions.
+- **Commercial use requires a licence** — including a solo consultant using it
+  on client work, and an employee using it at their job. Get in touch at
+  <https://mayorana.ch/en/contact>.
+
+This is deliberately not an OSI-approved open source licence: the source is
+public and readable, but companies using it for work need a commercial licence.
+
+The name, logo and icons are trademarks and are not covered by that licence —
+fork it and rebrand it. See [TRADEMARK.md](TRADEMARK.md).

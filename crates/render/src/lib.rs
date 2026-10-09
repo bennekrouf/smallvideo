@@ -112,7 +112,18 @@ impl Scene {
             let (cx, cy, cs) = f.cursor.map_or((0.0, 0.0, 0.0), |c| (c.x, c.y, c.size));
             frames.extend([f.source.x, f.source.y, f.source.w, cx, cy, cs]);
         }
-        Track { fps, width, height, content: first.content, radius: first.radius, shadow: first.shadow, frames }
+        let timeline = self.project.timeline();
+        Track {
+            fps,
+            width,
+            height,
+            content: first.content,
+            radius: first.radius,
+            shadow: first.shadow,
+            skips: timeline.skips(self.project.duration),
+            duration: timeline.duration(),
+            frames,
+        }
     }
 }
 
@@ -128,6 +139,10 @@ pub struct Track {
     pub content: Rect,
     pub radius: f32,
     pub shadow: Option<Shadow>,
+    /// Stretches of the recording left out of the video (blanks cut), which playback jumps over.
+    pub skips: Vec<(f64, f64)>,
+    /// Length of the video, without them.
+    pub duration: f64,
     /// Per frame: source viewport x, y, size; cursor x, y, size in output pixels (size 0 when
     /// the cursor is out of view).
     pub frames: Vec<f32>,

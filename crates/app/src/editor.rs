@@ -7,10 +7,11 @@ use crate::{media_server, platform};
 use dioxus::desktop::use_asset_handler;
 use dioxus::prelude::*;
 use serde::Deserialize;
+use small_video_core::blanks::redetect;
 use small_video_core::history::History;
 use small_video_core::project::{Aspect, Background};
 use small_video_core::zoom::{self, Zoom};
-use small_video_core::{take, EventLog, Project};
+use small_video_core::{take, BlankParams, EventLog, Loudness, Project};
 use small_video_export::{Progress, Settings};
 use small_video_render::{compose, Scene};
 use std::path::PathBuf;
@@ -133,6 +134,13 @@ fn Loaded(dir: PathBuf, project: Project, events: Rc<EventLog>) -> Element {
         error: use_signal(|| None),
     };
     let mut time = use_signal(|| 0.0f64);
+    let loudness = use_signal({
+        let dir = dir.clone();
+        move || match std::fs::read(dir.join(take::LOUDNESS)).ok().and_then(|b| serde_json::from_slice(&b).ok()) {
+            Some(l) => Measure::Ready(Rc::new(l)),
+            None => Measure::Unknown,
+        }
+    });
     let mut playing = use_signal(|| false);
     let mut selected = use_signal(|| Option::<usize>::None);
 
@@ -216,6 +224,8 @@ fn Loaded(dir: PathBuf, project: Project, events: Rc<EventLog>) -> Element {
 
     let project = doc.project.read();
     let duration = project.duration.max(0.001);
+    let video_duration = project.timeline().duration();
+    let cutting = project.blanks.is_some();
     let background = match &project.style.background {
         Background::Color(c) => c.clone(),
         Background::Gradient(a, b) => format!("linear-gradient(to bottom, {a}, {b})"),
@@ -276,7 +286,7 @@ fn Loaded(dir: PathBuf, project: Project, events: Rc<EventLog>) -> Element {
                     }
                     span { class: "time",
                         span { id: "sv-time", "0:00" }
-                        " / {clock(duration)}"
+                        " / {clock(video_duration)}"
                     }
                     span { class: "spacer" }
                     button { onclick: move |_| add_zoom(()), title: "Z", "+ Zoom" }
@@ -284,6 +294,24 @@ fn Loaded(dir: PathBuf, project: Project, events: Rc<EventLog>) -> Element {
                     button { onclick: move |_| doc.redo(), title: "{platform::MOD}Shift+Z", "Redo" }
                 }
                 div { id: "sv-timeline", class: "timeline",
+                    if cutting {
+                        for (i, c) in project.cuts.iter().enumerate() {
+                            div {
+                                key: "cut-{i}-{c.start}",
+                                class: if c.keep { "cut kept" } else { "cut" },
+                                left: "{c.start / duration * 100.0}%",
+                                width: "{(c.end - c.start) / duration * 100.0}%",
+                                title: if c.keep { "Kept — click to cut it" } else { "Cut — click to keep it" },
+                                onclick: move |_| {
+                                    doc.change(|p| {
+                                        if let Some(c) = p.cuts.get_mut(i) {
+                                            c.keep = !c.keep;
+                                        }
+                                    })
+                                },
+                            }
+                        }
+                    }
                     for (i, z) in project.zooms.iter().enumerate() {
                         div {
                             key: "{i}-{z.start}",
@@ -306,6 +334,7 @@ fn Loaded(dir: PathBuf, project: Project, events: Rc<EventLog>) -> Element {
                 } else {
                     StylePanel { doc }
                 }
+                BlanksPanel { doc, dir: dir.clone(), loudness }
                 ExportPanel { dir: dir.clone() }
             }
         }
@@ -656,6 +685,146 @@ fn ExportPanel(dir: PathBuf) -> Element {
                 Export::Idle => rsx! {
                     button { class: "primary wide", onclick: start.clone(), "Export MP4" }
                 },
+            }
+        }
+    }
+}
+
+/// The take's loudness, needed to find blanks: measured once (ffmpeg reads the sound) and kept
+/// in the take's folder.
+#[derive(Clone, PartialEq)]
+enum Measure {
+    Unknown,
+    Measuring,
+    Ready(Rc<Loudness>),
+    /// The recording has no sound: nothing to go by.
+    Silent,
+    Failed(String),
+}
+
+fn measure(dir: &std::path::Path) -> anyhow::Result<Option<Loudness>> {
+    let ffmpeg = small_video_export::ensure_ffmpeg(&mut |_| {}, &|| false)?;
+    let loudness = small_video_export::sound::loudness(&ffmpeg, &dir.join(take::SCREEN))?;
+    if let Some(l) = &loudness {
+        std::fs::write(dir.join(take::LOUDNESS), serde_json::to_vec(l)?)?;
+    }
+    Ok(loudness)
+}
+
+/// Turns blank cutting on with `params`, finding the cuts again (cuts the user kept stay kept).
+fn cut_blanks(p: &mut Project, loudness: &Loudness, params: BlankParams) {
+    p.cuts = redetect(&p.cuts, loudness, p.duration, &params);
+    p.blanks = Some(params);
+}
+
+#[component]
+fn BlanksPanel(doc: Doc, dir: PathBuf, loudness: Signal<Measure>) -> Element {
+    let p = doc.project.read();
+    let params = p.blanks;
+    let measure_state = loudness();
+
+    // Measures the loudness in the background; then, if `enable`, or if cutting is on but no
+    // cuts were found yet, finds the cuts.
+    let mut start_measuring = move |dir: PathBuf, enable: bool| {
+        loudness.set(Measure::Measuring);
+        spawn(async move {
+            match tokio::task::spawn_blocking(move || measure(&dir)).await {
+                Ok(Ok(Some(l))) => {
+                    let l = Rc::new(l);
+                    loudness.set(Measure::Ready(l.clone()));
+                    let (on, empty) = {
+                        let p = doc.project.peek();
+                        (p.blanks.is_some(), p.cuts.is_empty())
+                    };
+                    if enable || (on && empty) {
+                        doc.change(|p| cut_blanks(p, &l, p.blanks.unwrap_or_default()));
+                    }
+                }
+                Ok(Ok(None)) => loudness.set(Measure::Silent),
+                Ok(Err(e)) => loudness.set(Measure::Failed(format!("{e:#}"))),
+                Err(e) => loudness.set(Measure::Failed(e.to_string())),
+            }
+        });
+    };
+    // Cutting is on but the loudness wasn't kept (or was deleted): measure it again.
+    use_hook({
+        let dir = dir.clone();
+        let mut start = start_measuring;
+        move || {
+            if params.is_some() && *loudness.peek() == Measure::Unknown {
+                start(dir, false);
+            }
+        }
+    });
+    let mut turn_on = move |dir: PathBuf| match loudness() {
+        Measure::Ready(l) => doc.change(|p| cut_blanks(p, &l, p.blanks.unwrap_or_default())),
+        Measure::Measuring | Measure::Silent => {}
+        Measure::Unknown | Measure::Failed(_) => start_measuring(dir, true),
+    };
+
+    // A slider moved: find the cuts again with the new settings (one undo step per drag).
+    let tune = move |change: &dyn Fn(&mut BlankParams)| {
+        if let Measure::Ready(l) = loudness() {
+            doc.live(|p| {
+                let mut params = p.blanks.unwrap_or_default();
+                change(&mut params);
+                cut_blanks(p, &l, params);
+            });
+        }
+    };
+    let cuts = p.cuts.iter().filter(|c| !c.keep).count();
+    let before = clock(p.duration);
+    let after = clock(p.timeline().duration());
+
+    rsx! {
+        div { class: "blanks",
+            h2 { "Blanks" }
+            label { class: "check",
+                input {
+                    r#type: "checkbox",
+                    checked: params.is_some(),
+                    disabled: matches!(measure_state, Measure::Measuring | Measure::Silent),
+                    onchange: move |e| {
+                        if e.checked() {
+                            turn_on(dir.clone());
+                        } else {
+                            doc.change(|p| p.blanks = None);
+                        }
+                    },
+                }
+                "Cut the pauses"
+            }
+            match &measure_state {
+                Measure::Measuring => rsx! { p { class: "hint", "Listening to the recording…" } },
+                Measure::Silent => rsx! { p { class: "hint", "This recording has no sound, so there are no pauses to find." } },
+                Measure::Failed(e) => rsx! { p { class: "error", "{e}" } },
+                _ => rsx! {},
+            }
+            if let Some(b) = params {
+                Slider {
+                    edits: doc,
+                    label: "Silence below",
+                    value: b.threshold_db as f64,
+                    min: -60.0,
+                    max: -25.0,
+                    step: 1.0,
+                    show: format!("{:.0} dB", b.threshold_db),
+                    oninput: move |v: f64| tune(&|b: &mut BlankParams| b.threshold_db = v as f32),
+                }
+                Slider {
+                    edits: doc,
+                    label: "Pauses longer than",
+                    value: b.min_pause_secs,
+                    min: 0.3,
+                    max: 3.0,
+                    step: 0.1,
+                    show: format!("{:.1} s", b.min_pause_secs),
+                    oninput: move |v: f64| tune(&|b: &mut BlankParams| b.min_pause_secs = v),
+                }
+                p { class: "hint",
+                    if cuts == 1 { "1 cut" } else { "{cuts} cuts" }
+                    " · {before} → {after}. The hatched stretches on the timeline are cut; click one to keep it."
+                }
             }
         }
     }
