@@ -84,6 +84,15 @@ fn clock(d: Duration) -> String {
 pub fn App() -> Element {
     let recorder = use_hook(Recorder::spawn);
     let pro = use_context_provider(crate::licence::Pro::new);
+    // Delayed and best-effort: a release check is never worth slowing a cold start, and a
+    // failed one is not worth mentioning. Dismissed for this session only.
+    let mut update = use_signal(|| Option::<crate::update_check::UpdateInfo>::None);
+    use_future(move || async move {
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        if let Some(info) = crate::update_check::check().await {
+            update.set(Some(info));
+        }
+    });
     let tray = use_hook(|| std::rc::Rc::new(Tray::new()));
     use_hook(|| platform::exclude_from_capture(&window()));
     let mut status = use_signal(|| Status::Idle);
@@ -197,10 +206,25 @@ pub fn App() -> Element {
 
     rsx! {
         style { {CSS} }
+        if let Some(info) = update() {
+            div { class: "update-banner",
+                span { class: "update-banner-text",
+                    "Small Video "
+                    strong { "{info.latest_version}" }
+                    " is available (you have {env!(\"CARGO_PKG_VERSION\")})."
+                }
+                a { class: "update-banner-link", href: "{info.download_url}", target: "_blank", "Download" }
+                button { class: "update-banner-dismiss", title: "Dismiss", onclick: move |_| update.set(None), "×" }
+            }
+        }
         div { class: "app",
             nav { class: "sidebar",
                 header {
-                    h1 { "Small Video" }
+                    h1 {
+                        "Small Video"
+                        // Which build is running, for bug reports and support.
+                        span { class: "app-version", {concat!("v", env!("CARGO_PKG_VERSION"))} }
+                    }
                     button {
                         class: if recording { "record on" } else { "record" },
                         disabled: status() == Status::Saving,

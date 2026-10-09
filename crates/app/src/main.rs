@@ -6,6 +6,7 @@ mod licence;
 mod media_server;
 mod platform;
 mod takes;
+mod update_check;
 mod views;
 
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour};
@@ -15,7 +16,7 @@ fn main() {
         .with_data_directory(webview_data_dir())
         .with_window(
             WindowBuilder::new()
-                .with_title("Small Video")
+                .with_title(concat!("Small Video ", env!("CARGO_PKG_VERSION")))
                 .with_inner_size(LogicalSize::new(1280.0, 820.0))
                 .with_window_icon(window_icon()),
         )

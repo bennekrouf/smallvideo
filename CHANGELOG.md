@@ -16,6 +16,17 @@ Each heading is dated on the day its tag was pushed. Releases that carried only
 build or packaging work say so rather than being hidden: the version numbers a
 user sees in the update prompt should all be accounted for.
 
+## [Unreleased]
+
+### Added
+
+- The version you are running now shows next to the Small Video name at the
+  top of the sidebar and in the window title, so it is at hand when you report
+  a problem or check whether an update installed.
+- When a newer version of Small Video is out, a banner at the top of the
+  window says so and **Download** fetches it for your system. **×** hides it
+  until the next start.
+
 ## [0.1.2] - 2026-10-09
 
 ### Added
