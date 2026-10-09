@@ -4406,7 +4406,7 @@ dependencies = [
 
 [[package]]
 name = "small-video"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4427,7 +4427,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-capture"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "cpal",
@@ -4441,7 +4441,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4449,7 +4449,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-export"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "dirs",
@@ -4464,7 +4464,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-render"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "small-video-core",
