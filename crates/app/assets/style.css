@@ -246,3 +246,32 @@ button kbd { margin-left: 6px; }
 .modal-actions .left { margin-right: auto; }
 .button-link { color: var(--zoom); text-decoration: none; align-self: center; padding: 0 6px; }
 .button-link:hover { text-decoration: underline; }
+
+/* Version and update banner, as in GitAgent and Splitter */
+.app-version { font-size: 10px; font-weight: 400; color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; }
+.update-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--zoom);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.update-banner-text { flex: 1; }
+.update-banner-text strong { font-weight: 700; }
+.update-banner-link {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+}
+.update-banner-link:hover { background: rgba(255, 255, 255, 0.15); }
+.update-banner-dismiss { background: transparent; border: none; color: #fff; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.7; cursor: pointer; }
+.update-banner-dismiss:hover { opacity: 1; }

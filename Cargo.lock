@@ -4520,6 +4520,7 @@ dependencies = [
  "small-video-render",
  "tokio",
  "trash",
+ "ureq",
  "windows 0.62.2",
  "winresource",
 ]
