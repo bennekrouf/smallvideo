@@ -16,6 +16,17 @@ Each heading is dated on the day its tag was pushed. Releases that carried only
 build or packaging work say so rather than being hidden: the version numbers a
 user sees in the update prompt should all be accounted for.
 
+## [Unreleased]
+
+### Added
+
+- Small Video Pro. The free version exports 10 different takes; exporting one
+  of them again, after changing a zoom for instance, is free, and recording
+  and editing are never limited. The export panel shows how many free exports
+  are left, and **Get Pro…** in the sidebar is where you buy Small Video Pro
+  or paste your licence key to export every take. The key is checked on your
+  computer, with no account and nothing sent anywhere.
+
 ## [0.1.1] - 2026-10-09
 
 ### Added

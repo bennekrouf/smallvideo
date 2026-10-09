@@ -17,6 +17,7 @@ tokio = { workspace = true, features = ["rt"] }
 dirs.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+base64.workspace = true
 # Decodes the embedded icons (window and menu bar); png is the only format needed.
 image = { version = "0.25", default-features = false, features = ["png"] }
 # Deleting a take moves its folder to the system Trash, so it can be restored (as in Splitter).

@@ -9,6 +9,7 @@ pub mod camera;
 pub mod cursor;
 pub mod events;
 pub mod history;
+pub mod license;
 pub mod project;
 pub mod zoom;
 

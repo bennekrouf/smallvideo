@@ -581,12 +581,15 @@ fn ExportPanel(dir: PathBuf) -> Element {
     // ffmpeg is being fetched before the first export.
     let mut downloading = use_signal(|| false);
     let out = export_path(&dir);
+    // The take's name: what the free version's exports are counted by.
+    let take = dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let pro = use_context::<crate::licence::Pro>();
 
     // Progress and the result, while an export runs.
     use_future({
-        let out = out.clone();
+        let (out, take) = (out.clone(), take.clone());
         move || {
-            let out = out.clone();
+            let (out, take) = (out.clone(), take.clone());
             async move {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -599,7 +602,10 @@ fn ExportPanel(dir: PathBuf) -> Element {
                         _ => None,
                     };
                     match finished {
-                        Some(Ok(())) => state.set(Export::Done(out.clone())),
+                        Some(Ok(())) => {
+                            pro.exported(&take);
+                            state.set(Export::Done(out.clone()));
+                        }
                         Some(Err(e)) if e.is::<small_video_export::Cancelled>() => state.set(Export::Idle),
                         Some(Err(e)) => state.set(Export::Failed(format!("{e:#}"))),
                         None => {}
@@ -610,8 +616,14 @@ fn ExportPanel(dir: PathBuf) -> Element {
     });
 
     let start = {
-        let (dir, out) = (dir.clone(), out.clone());
+        let (dir, out, take) = (dir.clone(), out.clone(), take.clone());
         move |_| {
+            // Without Pro, a take not exported before needs a free export left.
+            if !pro.may_export(&take) {
+                let mut open = pro.open;
+                open.set(Some(Some(take.clone())));
+                return;
+            }
             let (progress, cancel) = (Arc::new(Progress::default()), Arc::new(AtomicBool::new(false)));
             let (tx, done) = mpsc::channel();
             let (dir, out, settings) = (dir.clone(), out.clone(), settings());
@@ -682,8 +694,27 @@ fn ExportPanel(dir: PathBuf) -> Element {
                     p { class: "error", "{e}" }
                     button { class: "primary", onclick: start.clone(), "Try again" }
                 },
-                Export::Idle => rsx! {
-                    button { class: "primary wide", onclick: start.clone(), "Export MP4" }
+                Export::Idle => {
+                    let limited = !pro.status.read().unlimited();
+                    let exported = pro.exported.read();
+                    let allowed = !limited || exported.allows(&take);
+                    let left = exported.left();
+                    rsx! {
+                        button { class: "primary wide", onclick: start.clone(),
+                            if allowed { "Export MP4" } else { "Export MP4 \u{1f512}" }
+                        }
+                        if limited {
+                            p { class: "hint",
+                                if !allowed {
+                                    "Free exports used up \u{2014} Small Video Pro exports every take"
+                                } else if exported.takes.contains(&take) {
+                                    "Exporting this take again is free"
+                                } else {
+                                    "{left} free export(s) left"
+                                }
+                            }
+                        }
+                    }
                 },
             }
         }

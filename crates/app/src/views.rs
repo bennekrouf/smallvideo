@@ -83,6 +83,7 @@ fn clock(d: Duration) -> String {
 #[component]
 pub fn App() -> Element {
     let recorder = use_hook(Recorder::spawn);
+    let pro = use_context_provider(crate::licence::Pro::new);
     let tray = use_hook(|| std::rc::Rc::new(Tray::new()));
     use_hook(|| platform::exclude_from_capture(&window()));
     let mut status = use_signal(|| Status::Idle);
@@ -207,6 +208,18 @@ pub fn App() -> Element {
                         "{label}"
                     }
                 }
+                {
+                    let mut open = pro.open;
+                    let (label, title) = match *pro.status.read() {
+                        crate::licence::Status::Pro(_) => ("Pro \u{2713}", "Small Video Pro is active on this computer"),
+                        crate::licence::Status::Renew(_) => ("Renew Pro\u{2026}", "Your Pro updates ended before this version"),
+                        crate::licence::Status::Unavailable => ("Pro", "This build exports every take"),
+                        crate::licence::Status::Free => ("Get Pro\u{2026}", "Buy Small Video Pro, or paste your licence key"),
+                    };
+                    rsx! {
+                        button { class: "pro-button", title: "{title}", onclick: move |_| open.set(Some(None)), "{label}" }
+                    }
+                }
                 p { class: "hint",
                     if shortcut.is_ok() {
                         "{platform::SHORTCUT_LABEL} or Small Video's icon in the {TRAY_PLACE} records from any app. Its windows are left out."
@@ -273,6 +286,7 @@ pub fn App() -> Element {
                     }
                 }
             }
+            crate::licence::ProDialog {}
             if let Some(dir) = confirm_delete() {
                 DeleteDialog {
                     dir,

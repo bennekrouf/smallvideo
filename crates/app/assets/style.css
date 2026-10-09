@@ -228,3 +228,21 @@ button kbd { margin-left: 6px; }
 .timeline .cut.kept { background: none; border: 1px dashed rgba(161, 161, 170, 0.6); }
 .timeline .zoom { z-index: 1; }
 .blanks { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
+
+/* Small Video Pro */
+.pro-button { align-self: flex-start; color: var(--zoom); border-color: var(--zoom); }
+.modal textarea.licence-key {
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+  background: var(--bg, #18181b);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  word-break: break-all;
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.modal-actions .left { margin-right: auto; }
+.button-link { color: var(--zoom); text-decoration: none; align-self: center; padding: 0 6px; }
+.button-link:hover { text-decoration: underline; }
