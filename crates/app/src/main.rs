@@ -2,6 +2,7 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod editor;
+mod licence;
 mod media_server;
 mod platform;
 mod takes;
@@ -20,7 +21,10 @@ fn main() {
         )
         .with_background_color((24, 24, 27, 255))
         // Closing the window keeps the app in the menu bar, ready to record.
-        .with_close_behaviour(WindowCloseBehaviour::WindowHides);
+        .with_close_behaviour(WindowCloseBehaviour::WindowHides)
+        // Clicking the menu bar item only opens its menu: starting a recording shouldn't
+        // bring the window up. "Show Small Video" does, and so does a finished take.
+        .with_tray_icon_show_window_on_click(false);
     dioxus::LaunchBuilder::desktop().with_cfg(cfg).launch(views::App);
 }
 
