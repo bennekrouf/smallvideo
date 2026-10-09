@@ -4504,7 +4504,7 @@ dependencies = [
 
 [[package]]
 name = "small-video"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4526,7 +4526,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-capture"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "cpal",
@@ -4540,7 +4540,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -4550,7 +4550,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-export"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "dirs",
@@ -4565,7 +4565,7 @@ dependencies = [
 
 [[package]]
 name = "small-video-render"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "small-video-core",
